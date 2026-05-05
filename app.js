@@ -3,6 +3,29 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 app.get("/", (req, res) => res.type('html').send(html));
+app.use(express.json());
+
+// 🔹 VERIFICACIÓN (cuando Meta conecta el webhook)
+app.get("/webhook", (req, res) => {
+  const VERIFY_TOKEN = "mi_token_123"; // 👈 mismo que pongas en Meta
+
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode && token === VERIFY_TOKEN) {
+    console.log("Webhook verificado ✅");
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+// 🔹 RECIBIR MENSAJES
+app.post("/webhook", (req, res) => {
+  console.log("Mensaje recibido:", JSON.stringify(req.body, null, 2));
+  res.sendStatus(200);
+});
 
 const server = app.listen(port, () => console.log(`Example app listening on port ${port}!`));
 
