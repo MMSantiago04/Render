@@ -1,11 +1,12 @@
 const express = require("express");
 const app = express();
-
 app.use(express.json());
 
-const VERIFY_TOKEN = "mi_token_123"; // 👈 usa este mismo en Meta
+// ✅ Variables de entorno - nunca hardcodear tokens
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "mi_token_123";
+const ACCESS_TOKEN = process.env.ACCESS_TOKEN; // token permanente
 
-// 🔹 Ruta base (solo para probar que el server está vivo)
+// 🔹 Ruta base
 app.get("/", (req, res) => {
   res.send("SERVER OK 🚀");
 });
@@ -15,11 +16,7 @@ app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
-
   console.log("👉 Intento de verificación...");
-  console.log("mode:", mode);
-  console.log("token:", token);
-
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
     console.log("✅ WEBHOOK VERIFIED");
     return res.status(200).send(challenge);
@@ -29,10 +26,18 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-// 🔹 Recibir mensajes
+// 🔹 Recibir mensajes entrantes
 app.post("/webhook", (req, res) => {
-  console.log("📩 Mensaje recibido:");
-  console.log(JSON.stringify(req.body, null, 2));
+  const body = req.body;
+  if (body.object === "whatsapp_business_account") {
+    const changes = body.entry?.[0]?.changes?.[0]?.value;
+    const message = changes?.messages?.[0];
+    if (message) {
+      const from = message.from;       // número del cliente
+      const text = message.text?.body; // texto del mensaje
+      console.log(`📩 Mensaje de ${from}: ${text}`);
+    }
+  }
   res.sendStatus(200);
 });
 
